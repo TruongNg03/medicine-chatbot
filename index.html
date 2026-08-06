@@ -16,17 +16,19 @@
         padding: 10px;
         display: flex;
         justify-content: center;
+        height: 100vh;
       }
 
       .chat-container {
         width: 100%;
-        max-width: 900px;
+        max-width: 1000px;
         background: #fff;
         border-radius: 12px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        overflow-y: auto;
       }
 
       /* Header tiêu đề */
@@ -63,8 +65,9 @@
 
       /* Khung nội dung chat */
       .chat-box {
+        flex: 1;
         padding: 20px 15px;
-        height: 400px;
+        min-height: 350px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
