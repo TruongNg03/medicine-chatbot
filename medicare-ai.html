@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediCare AI</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      body {
+        background-color: #f5f5f5;
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .chat-container {
+        width: 100%;
+        max-width: 900px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Header tiêu đề */
+      .header-title {
+        text-align: center;
+        padding: 15px 10px 5px;
+      }
+      .header-title h1 {
+        color: #d9534f;
+        font-size: 26px;
+        font-weight: bold;
+      }
+      .header-title p {
+        color: #f0ad4e;
+        font-size: 13px;
+        margin-top: 4px;
+      }
+
+      /* Banner thanh xanh */
+      .chat-header {
+        background-color: #0b3c85;
+        color: white;
+        text-align: center;
+        padding: 10px;
+        font-weight: bold;
+        font-size: 16px;
+        margin: 10px 15px 0;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      /* Khung nội dung chat */
+      .chat-box {
+        padding: 20px 15px;
+        height: 400px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .message-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .message-row.user {
+        justify-content: flex-end;
+      }
+
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #e67e22;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .avatar.user-avt {
+        background-color: #0b3c85;
+      }
+
+      .bubble {
+        max-width: 60%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #333;
+        word-break: break-word;
+      }
+      .bot .bubble {
+        background-color: #f1f3f4;
+        border: 1px solid #e0e0e0;
+      }
+      .user .bubble {
+        background-color: #0b3c85;
+        color: white;
+      }
+
+      /* Khung nhập liệu */
+      .input-area {
+        padding: 15px;
+        display: flex;
+        gap: 10px;
+        border-top: 1px solid #eee;
+      }
+      .input-area input {
+        flex: 1;
+        padding: 12px 18px;
+        border: 1px solid #ccc;
+        border-radius: 25px;
+        outline: none;
+        font-size: 14px;
+      }
+      .input-area button {
+        background-color: #0b3c85;
+        color: white;
+        border: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        transition: background 0.2s;
+      }
+      .input-area button:hover {
+        background-color: #082a5e;
+      }
+
+      /* Thẻ lưu ý chân trang */
+      .disclaimer {
+        margin: 10px 15px 15px;
+        padding: 10px;
+        background-color: #fff8e1;
+        border-left: 4px solid #ffa000;
+        font-size: 12px;
+        color: #555;
+        border-radius: 4px;
+      }
+      .footer-text {
+        text-align: center;
+        font-size: 11px;
+        color: #888;
+        padding-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="header-title">
+        <h1>MediCare AI</h1>
+        <p>Trí tuệ nhân tạo hỗ trợ tham khảo y tế tại TTYT Ninh Giang</p>
+      </div>
+
+      <div class="chat-header">🛡️ Trợ lý Y tế Thông minh</div>
+
+      <div class="chat-box" id="chatBox">
+        <div class="message-row bot">
+          <div class="avatar">AI</div>
+          <div class="bubble">
+            Chào bạn! Tôi là MediCare AI, trợ lý thông minh được xây dựng bởi
+            TTYT Ninh Giang. Rất vui lòng được hỗ trợ bạn!
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <input
+          type="text"
+          id="userInput"
+          placeholder="Nhập câu hỏi của bạn..."
+          onkeydown="if (event.key === 'Enter') sendMessage();"
+        />
+        <button onclick="sendMessage()">➤</button>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Lưu ý quan trọng:</strong> Thông tin từ DeepMed-AI chỉ mang tính
+        chất tham khảo. Để có chẩn đoán chính xác và điều trị phù hợp, vui lòng
+        đến trực tiếp TTYT Ninh Giang để được thăm khám.
+      </div>
+      <div class="footer-text">
+        TTYT Ninh Giang © 2026 | MediCare AI - Hỗ trợ thông tin y tế thông minh
+      </div>
+    </div>
+
+    <script>
+      async function sendMessage() {
+        const input = document.getElementById("userInput");
+        const text = input.value.trim();
+        if (!text) return;
+
+        // Hiển thị tin nhắn người dùng
+        appendMessage(text, "user");
+        input.value = "";
+
+        // Tạo bong bóng chờ cho Bot
+        const loadingId = appendMessage("Đang suy nghĩ...", "bot");
+
+        try {
+          const response = await fetch(
+            "https://medicare-chatbot.evilgodashtal.workers.dev",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: text,
+              }),
+            },
+          );
+
+          const data = await response.json();
+
+          if (data.reply) {
+            document.getElementById(loadingId).innerText = data.reply;
+          } else {
+            document.getElementById(loadingId).innerText =
+              "Xin lỗi, hiện tại hệ thống không thể xử lý câu hỏi.";
+          }
+        } catch (error) {
+          document.getElementById(loadingId).innerText =
+            "Không thể kết nối đến server AI. Vui lòng kiểm tra lại kết nối!";
+        }
+      }
+
+      function appendMessage(text, side) {
+        const chatBox = document.getElementById("chatBox");
+        const row = document.createElement("div");
+        row.className = `message-row ${side}`;
+
+        const msgId = "msg-" + Date.now();
+
+        if (side === "bot") {
+          row.innerHTML = `<div class="avatar">AI</div><div class="bubble" id="${msgId}">${text}</div>`;
+        } else {
+          row.innerHTML = `<div class="bubble">${text}</div><div class="avatar user-avt">B</div>`;
+        }
+
+        chatBox.appendChild(row);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return msgId;
+      }
+    </script>
+  </body>
+</html>
