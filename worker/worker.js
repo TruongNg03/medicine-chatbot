@@ -205,7 +205,7 @@ async function findMedicines(env, keyword) {
       FROM medicines
       WHERE
         LOWER(hoat_chat) LIKE ?
-        OR LOWER(ten_biet_duoc) LIKE ?
+        OR LOWER(biet_duoc) LIKE ?
       ORDER BY updated_at DESC
     `,
   )
