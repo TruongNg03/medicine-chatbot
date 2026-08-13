@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    
+
     if (request.method === "OPTIONS") {
       return new Response(null, {
         headers: corsHeaders(),
@@ -23,14 +23,14 @@ export default {
 
       return new Response(
         JSON.stringify({
-          data: medicines
+          data: medicines,
         }),
         {
           headers: {
             "Content-Type": "application/json",
-            ...corsHeaders()
-          }
-        }
+            ...corsHeaders(),
+          },
+        },
       );
     }
 
@@ -239,3 +239,5 @@ const DEFAULT_OPTIONS = {
     groq: "groq",
   },
 };
+
+// check build
