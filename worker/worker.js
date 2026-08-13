@@ -8,16 +8,9 @@ export default {
       });
     }
 
-    if (request.method !== "POST") {
-      return new Response("Only POST method", {
-        status: 405,
-        headers: corsHeaders(),
-      });
-    }
-
     // get medicine info method
-    if (url.pathname === "/api/medicines") {
-      const keyword = url.searchParams.get("search") ?? "";
+    if (request.method === "GET" && url.pathname === `${BASE_URL}/medicines`) {
+      const keyword = url.searchParams.get("search");
 
       const medicines = await findMedicines(env, keyword);
 
@@ -201,23 +194,22 @@ async function getResponseJson(res) {
 
 // query to db
 async function findMedicines(env, keyword) {
-  const value = keyword.trim().toLowerCase();
+  const value = keyword?.trim().toLowerCase();
 
-  if (!value) {
-    return [];
-  }
+  if (!value) return [];
 
+  const searchValue = `%${value}%`;
   const result = await env.MEDICARE_AI_DB.prepare(
     `
       SELECT *
       FROM medicines
       WHERE
-        LOWER(hoat_chat) LIKE ? OR
-        LOWER(biet_duoc) LIKE ?
+        LOWER(hoat_chat) LIKE ?
+        OR LOWER(ten_biet_duoc) LIKE ?
       ORDER BY updated_at DESC
     `,
   )
-    .bind(`%${value}%`, `%${value}%`)
+    .bind(searchValue, searchValue)
     .all();
 
   return result.results;
@@ -228,11 +220,12 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   };
 }
 
 const DEFAULT_OPTIONS = {
+  BASE_URL: "/api",
   DEFAULT_MESSAGE: "Không có phản hồi.",
   DEFAULT_TYPE_AI: {
     GEMINI: "gemini",
