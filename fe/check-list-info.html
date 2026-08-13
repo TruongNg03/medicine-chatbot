@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tra cứu thuốc</title>
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7fb;
+      }
+      .bg-custom-blue {
+        background-color: #0b57d0;
+      }
+      .text-custom-blue {
+        color: #0b57d0;
+      }
+      .border-custom-blue {
+        border-color: #0b57d0;
+      }
+    </style>
+  </head>
+  <body class="p-4 md:p-6 text-gray-800">
+    <div class="max-w-4xl mx-auto space-y-6">
+      <!-- HEADER BLOCK -->
+      <div
+        class="bg-blue-50/60 p-6 rounded-2xl border border-blue-100 flex flex-col md:flex-row justify-between items-start gap-4"
+      >
+        <div>
+          <h1
+            class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center gap-3"
+          >
+            <i class="fa-solid fa-hospital text-custom-blue"></i> Tra cứu thuốc
+          </h1>
+          <p class="text-sm text-gray-600 mt-2">
+            Tra cứu nhanh hoạt chất, biệt dược, cách hoàn nguyên, dung môi pha
+            loãng, nồng độ khuyến nghị và các lưu ý khi tiêm truyền.
+          </p>
+        </div>
+        <div
+          class="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-xs w-full md:w-72 shrink-0"
+        >
+          <div class="font-bold flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Thận
+            trọng khi sử dụng
+          </div>
+          Luôn đối chiếu với y lệnh, hướng dẫn nhà sản xuất và tình trạng người
+          bệnh trước khi thực hiện.
+        </div>
+      </div>
+
+      <!-- SEARCH BOX BLOCK -->
+      <div
+        class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center"
+      >
+        <h2 class="font-bold text-lg text-slate-800 mb-1">Tra cứu trực tiếp</h2>
+        <p class="text-xs text-gray-500 mb-4">
+          Nhập tên hoạt chất hoặc biệt dược để tìm nhanh thông tin sử dụng thực
+          tế.
+        </p>
+
+        <div class="relative max-w-xl mx-auto">
+          <div
+            class="flex items-center border-2 border-blue-200 rounded-full bg-blue-50/30 overflow-hidden focus-within:border-blue-500 transition-all px-4 py-1.5"
+          >
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Tên hoạt chất hoặc biệt dược..."
+              class="w-full bg-transparent outline-none px-2 py-1 text-slate-700 placeholder-gray-400"
+            />
+            <button
+              type="button"
+              onclick="performSearch()"
+              class="bg-custom-blue text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-blue-700 transition"
+            >
+              <i
+                class="fa-solid fa-magnifying-glass text-sm"
+                aria-hidden="true"
+              ></i>
+            </button>
+          </div>
+          <!-- Dropdown Gợi ý search -->
+          <div
+            id="suggestions"
+            class="absolute w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-lg z-10 hidden text-left overflow-hidden"
+          ></div>
+        </div>
+
+        <div
+          class="flex justify-center gap-2 mt-4 text-xs font-medium text-gray-600"
+        >
+          <span class="bg-slate-100 px-3 py-1 rounded-full"
+            ><i class="fa-solid fa-pen text-custom-blue mr-1"></i> Hoạt
+            chất</span
+          >
+          <span class="bg-slate-100 px-3 py-1 rounded-full"
+            ><i class="fa-solid fa-capsules text-custom-blue mr-1"></i> Biệt
+            dược</span
+          >
+        </div>
+      </div>
+
+      <!-- MAIN RESULT AREA -->
+      <div id="resultArea">
+        <!-- Màn hình mặc định khi chưa tìm kiếm -->
+        <div
+          id="defaultScreen"
+          class="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center text-gray-500 my-6"
+        >
+          <i
+            class="fa-solid fa-magnifying-glass text-4xl text-custom-blue mb-3"
+          ></i>
+          <h3 class="text-xl font-bold text-slate-700">
+            Bắt đầu tra cứu thông tin thuốc
+          </h3>
+          <p class="text-sm mt-1">
+            Nhập tên hoạt chất hoặc biệt dược ở ô tìm kiếm phía trên để xem dữ
+            liệu sử dụng thực tế.
+          </p>
+        </div>
+
+        <!-- Khung hiển thị chi tiết kết quả (Ẩn mặc định) -->
+        <div id="detailScreen" class="space-y-4 hidden">
+          <!-- Tên thuốc chính -->
+          <div class="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl">
+            <h2
+              id="resBietDuocTitle"
+              class="text-2xl font-bold text-custom-blue"
+            >
+              ---
+            </h2>
+            <p
+              id="resSubTitle"
+              class="text-sm text-slate-600 mt-1 font-semibold"
+            >
+              ---
+            </p>
+          </div>
+
+          <!-- Khối 1: Đặc điểm chung -->
+          <div
+            class="border border-blue-100 rounded-xl overflow-hidden bg-white shadow-sm"
+          >
+            <div
+              class="bg-custom-blue text-white px-4 py-2.5 font-bold text-sm"
+            >
+              Đặc điểm chung
+            </div>
+            <div class="divide-y divide-gray-100 text-sm">
+              <div class="grid grid-cols-3 p-3">
+                <span class="font-bold text-gray-700">Hoạt chất</span
+                ><span id="resHoatChat" class="col-span-2 text-gray-800"
+                  >---</span
+                >
+              </div>
+              <div class="grid grid-cols-3 p-3 bg-gray-50/50">
+                <span class="font-bold text-gray-700">Biệt dược</span
+                ><span id="resBietDuoc" class="col-span-2 text-gray-800"
+                  >---</span
+                >
+              </div>
+              <div class="grid grid-cols-3 p-3">
+                <span class="font-bold text-gray-700">Dạng bào chế</span
+                ><span id="resDangBaoChe" class="col-span-2 text-gray-800"
+                  >---</span
+                >
+              </div>
+              <div class="grid grid-cols-3 p-3 bg-gray-50/50">
+                <span class="font-bold text-gray-700">Đường tiêm</span
+                ><span id="resDuongTiem" class="col-span-2 text-gray-800"
+                  >---</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Khối 2: Chỉ định và liều dùng -->
+          <div
+            class="border border-blue-100 rounded-xl overflow-hidden bg-white shadow-sm"
+          >
+            <div
+              class="bg-custom-blue text-white px-4 py-2.5 font-bold text-sm"
+            >
+              Chỉ định và liều dùng
+            </div>
+            <div class="divide-y divide-gray-100 text-sm">
+              <div class="grid grid-cols-3 p-3">
+                <span class="font-bold text-gray-700"
+                  >Nhóm tác dụng dược lý</span
+                ><span id="resNhomTacDung" class="col-span-2 text-gray-800"
+                  >---</span
+                >
+              </div>
+              <div class="grid grid-cols-3 p-3 bg-gray-50/50">
+                <span class="font-bold text-red-600">Chống chỉ định</span
+                ><span
+                  id="resChongChiDinh"
+                  class="col-span-2 text-red-600 font-semibold"
+                  >---</span
+                >
+              </div>
+              <div class="grid grid-cols-3 p-3">
+                <span class="font-bold text-gray-700">Liều tối đa</span
+                ><span id="resLieuToiDa" class="col-span-2 text-gray-800"
+                  >---</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Khối 3: Pha chế và bảo quản -->
+          <div
+            class="border border-blue-100 rounded-xl overflow-hidden bg-white shadow-sm"
+          >
+            <div
+              class="bg-custom-blue text-white px-4 py-2.5 font-bold text-sm"
+            >
+              Pha chế và bảo quản
+            </div>
+            <div class="p-3 text-sm grid grid-cols-3">
+              <span class="font-bold text-gray-700">Dung môi hoàn nguyên</span
+              ><span id="resDungMoi" class="col-span-2 text-gray-800">---</span>
+            </div>
+          </div>
+
+          <!-- Khối 4: Sử dụng và theo dõi -->
+          <div
+            class="border border-blue-100 rounded-xl overflow-hidden bg-white shadow-sm"
+          >
+            <div
+              class="bg-custom-blue text-white px-4 py-2.5 font-bold text-sm"
+            >
+              Sử dụng và theo dõi
+            </div>
+            <div class="divide-y divide-gray-100 text-sm">
+              <div class="grid grid-cols-3 p-3">
+                <span class="font-bold text-gray-700"
+                  >Thời gian/tốc độ khuyến cáo</span
+                ><span id="resThoiGianTiem" class="col-span-2 text-gray-800"
+                  >---</span
+                >
+              </div>
+              <div class="grid grid-cols-3 p-3 bg-gray-50/50">
+                <span class="font-bold text-gray-700"
+                  >Lưu ý khi tiêm, truyền</span
+                ><span id="resLuuY" class="col-span-2 text-gray-800">---</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Khối 5: Tương tác -->
+          <div
+            class="border border-blue-100 rounded-xl overflow-hidden bg-white shadow-sm"
+          >
+            <div
+              class="bg-custom-blue text-white px-4 py-2.5 font-bold text-sm"
+            >
+              Tương tác
+            </div>
+            <div class="p-3 text-sm grid grid-cols-3">
+              <span class="font-bold text-gray-700">Tương kỵ</span
+              ><span id="resTuongKy" class="col-span-2 text-gray-800">---</span>
+            </div>
+          </div>
+
+          <!-- Khối 6: Hình ảnh biệt dược -->
+          <div
+            class="border border-blue-100 rounded-xl overflow-hidden bg-white shadow-sm p-4"
+          >
+            <h4 class="font-bold text-gray-700 text-sm mb-3">
+              Hình ảnh biệt dược tại bệnh viện
+            </h4>
+            <div class="flex justify-center border rounded-xl p-2 bg-gray-50">
+              <img
+                id="resHinhAnh"
+                src=""
+                alt="Ảnh thuốc"
+                class="max-h-64 object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER DISCLAIMER -->
+      <p class="text-center text-xs text-gray-400 mt-6">
+        Dữ liệu chỉ phục vụ tra cứu chuyên môn. Quyết định cuối cùng thuộc về
+        bác sĩ và điều dưỡng thực hiện.
+      </p>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+      const API_URL =
+        "https://medicare-chatbot.evilgodashtal.workers.dev/medicines";
+
+      async function searchMedicines(keyword) {
+        if (!keyword?.trim()) return [];
+
+        const response = await fetch(
+          `${API_URL}?search=${encodeURIComponent(keyword.trim())}`,
+          {
+            method: "GET",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result.data ?? [];
+      }
+
+      const searchInput = document.getElementById("searchInput");
+      const suggestions = document.getElementById("suggestions");
+
+      // Tìm kiếm và gợi ý trực tiếp khi gõ
+      searchInput.addEventListener("input", async function () {
+        const val = this.value.trim();
+
+        suggestions.innerHTML = "";
+
+        if (!val) {
+          suggestions.classList.add("hidden");
+          return;
+        }
+
+        try {
+          const medicines = await searchMedicines(val);
+
+          if (!medicines.length) {
+            suggestions.classList.add("hidden");
+            return;
+          }
+
+          medicines.forEach((item) => {
+            const div = document.createElement("div");
+
+            div.className =
+              "px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b last:border-0 text-sm";
+
+            div.innerHTML = `
+              <span class="font-bold text-slate-700">
+                ${item.ten_biet_duoc ?? ""}
+              </span>
+              -
+              <span class="text-xs text-gray-500">
+                ${item.hoat_chat ?? ""}
+              </span>
+            `;
+
+            div.onclick = () => {
+              searchInput.value = item.ten_biet_duoc ?? item.hoat_chat ?? "";
+              suggestions.classList.add("hidden");
+              displayResult(item);
+            };
+
+            suggestions.appendChild(div);
+          });
+
+          suggestions.classList.remove("hidden");
+        } catch (error) {
+          console.error("Error fetching medicines:", error);
+          suggestions.classList.add("hidden");
+        }
+      });
+
+      async function performSearch() {
+        const val = searchInput.value.trim();
+        if (!val) return;
+
+        try {
+          const medicines = await searchMedicines(val);
+
+          if (!medicines.length) {
+            alert("Không tìm thấy thông tin thuốc!");
+            return;
+          }
+
+          // Lấy kết quả đầu tiên
+          displayResult(medicines[0]);
+          suggestions.classList.add("hidden");
+        } catch (error) {
+          console.error("Error fetching medicines:", error);
+        }
+      }
+
+      function displayResult(data) {
+        document.getElementById("defaultScreen").classList.add("hidden");
+        document.getElementById("detailScreen").classList.remove("hidden");
+
+        document.getElementById("resBietDuocTitle").innerText = data.biet_duoc;
+        document.getElementById("resSubTitle").innerText = data.hoat_chat;
+
+        document.getElementById("resHoatChat").innerText = data.hoat_chat;
+        document.getElementById("resBietDuoc").innerText = data.biet_duoc;
+        document.getElementById("resDangBaoChe").innerText = data.dang_bao_che;
+        document.getElementById("resDuongTiem").innerText = data.duong_tiem;
+
+        document.getElementById("resNhomTacDung").innerText =
+          data.nhom_tac_dung;
+        document.getElementById("resChongChiDinh").innerHTML =
+          data.chong_chi_dinh;
+        document.getElementById("resLieuToiDa").innerText = data.lieu_toi_da;
+
+        document.getElementById("resDungMoi").innerText = data.dung_moi;
+        document.getElementById("resThoiGianTiem").innerText =
+          data.thoi_gian_tiem;
+        document.getElementById("resLuuY").innerText = data.luu_y;
+        document.getElementById("resTuongKy").innerText = data.tuong_ky;
+
+        document.getElementById("resHinhAnh").src = data.hinh_anh;
+      }
+    </script>
+  </body>
+</html>
