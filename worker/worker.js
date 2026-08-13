@@ -1,23 +1,46 @@
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    
     if (request.method === "OPTIONS") {
       return new Response(null, {
-        headers: corsHeaders()
+        headers: corsHeaders(),
       });
     }
 
     if (request.method !== "POST") {
       return new Response("Only POST method", {
         status: 405,
-        headers: corsHeaders()
+        headers: corsHeaders(),
       });
+    }
+
+    // get medicine info method
+    if (url.pathname === "/api/medicines") {
+      const keyword = url.searchParams.get("search") ?? "";
+
+      const medicines = await findMedicines(env, keyword);
+
+      return new Response(
+        JSON.stringify({
+          data: medicines
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders()
+          }
+        }
+      );
     }
 
     let typeAI = DEFAULT_OPTIONS.DEFAULT_TYPE_AI.gemini;
 
     try {
       const { message } = await request.json();
-      let res, data, allErrorMessages = {};
+      let res,
+        data,
+        allErrorMessages = {};
 
       res = await askGemini(message, env);
       data = res.data;
@@ -37,7 +60,7 @@ export default {
             getErrorMessage(data?.error, DEFAULT_OPTIONS.DEFAULT_TYPE_AI.groq);
         }
       }
-      
+
       const reply =
         getSuccessMessage(data) ??
         getErrorMessage(data?.error, typeAI) ??
@@ -46,31 +69,31 @@ export default {
       return new Response(
         JSON.stringify({
           reply,
-          allErrorMessages
+          allErrorMessages,
         }),
         {
           headers: {
             "Content-Type": "application/json",
-            ...corsHeaders()
-          }
-        }
+            ...corsHeaders(),
+          },
+        },
       );
     } catch (e) {
       return new Response(
         JSON.stringify({
-          error: String(e)
+          error: String(e),
         }),
         {
           status: 500,
           headers: {
             "Content-Type": "application/json",
-            ...corsHeaders()
-          }
-        }
+            ...corsHeaders(),
+          },
+        },
       );
     }
-  }
-}
+  },
+};
 
 async function askGemini(message, env) {
   const response = await fetch(
@@ -78,27 +101,27 @@ async function askGemini(message, env) {
     {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         contents: [
           {
             parts: [
               {
-                text: message
-              }
-            ]
-          }
-        ]
-      })
-    }
+                text: message,
+              },
+            ],
+          },
+        ],
+      }),
+    },
   );
 
   const data = await getResponseJson(response);
   return {
     ok: response.ok,
     status: response.status,
-    data
+    data,
   };
 }
 
@@ -109,45 +132,49 @@ async function askGroq(message, env) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
           {
             role: "user",
-            content: message
-          }
-        ]
-      })
-    }
+            content: message,
+          },
+        ],
+      }),
+    },
   );
 
   const data = await getResponseJson(response);
   return {
     ok: response.ok,
     status: response.status,
-    data
+    data,
   };
 }
 
 function getSuccessMessage(data) {
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text ??
-         data?.choices?.[0]?.message?.content;
+  return (
+    data?.candidates?.[0]?.content?.parts?.[0]?.text ??
+    data?.choices?.[0]?.message?.content
+  );
 }
 
 function getErrorMessage(error, typeAI) {
   if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.gemini) {
     if (error?.code === 429) {
       const tryTime = getTryTime(error?.message);
-      return "Bạn đã vượt quá hạn mức (quota) hiện tại."
-        + (tryTime ? `Vui lòng thử lại sau ${tryTime} giây.` : "");
+      return (
+        "Bạn đã vượt quá hạn mức (quota) hiện tại." +
+        (tryTime ? `Vui lòng thử lại sau ${tryTime} giây.` : "")
+      );
     }
     return error?.message;
   } else if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.groq) {
     return error?.message;
   }
-  
+
   return;
 }
 
@@ -166,17 +193,42 @@ async function getResponseJson(res) {
   } catch {
     return {
       error: {
-        message: text
-      }
+        message: text,
+      },
     };
   }
 }
 
+// query to db
+async function findMedicines(env, keyword) {
+  const value = keyword.trim().toLowerCase();
+
+  if (!value) {
+    return [];
+  }
+
+  const result = await env.MEDICARE_AI_DB.prepare(
+    `
+      SELECT *
+      FROM medicines
+      WHERE
+        LOWER(hoat_chat) LIKE ? OR
+        LOWER(biet_duoc) LIKE ?
+      ORDER BY updated_at DESC
+    `,
+  )
+    .bind(`%${value}%`, `%${value}%`)
+    .all();
+
+  return result.results;
+}
+
+// default value
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS"
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }
 
@@ -184,6 +236,6 @@ const DEFAULT_OPTIONS = {
   DEFAULT_MESSAGE: "Không có phản hồi.",
   DEFAULT_TYPE_AI: {
     gemini: "gemini",
-    groq: "groq"
-  }
-}
+    groq: "groq",
+  },
+};
