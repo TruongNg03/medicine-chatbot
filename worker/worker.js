@@ -9,7 +9,7 @@ export default {
     }
 
     // get medicine info method
-    if (request.method === "GET" && url.pathname === `${BASE_URL}/medicines`) {
+    if (request.method === "GET" && url.pathname === `/medicines`) {
       const keyword = url.searchParams.get("search");
 
       const medicines = await findMedicines(env, keyword);
