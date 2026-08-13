@@ -34,7 +34,7 @@ export default {
       );
     }
 
-    let typeAI = DEFAULT_OPTIONS.DEFAULT_TYPE_AI.gemini;
+    let typeAI = DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI;
 
     try {
       const { message } = await request.json();
@@ -46,18 +46,18 @@ export default {
       data = res.data;
 
       if (!res.ok) {
-        allErrorMessages[DEFAULT_OPTIONS.DEFAULT_TYPE_AI.gemini] =
-          getErrorMessage(data?.error, DEFAULT_OPTIONS.DEFAULT_TYPE_AI.gemini);
+        allErrorMessages[DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI] =
+          getErrorMessage(data?.error, DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI);
       }
 
       if (!res.ok) {
-        typeAI = DEFAULT_OPTIONS.DEFAULT_TYPE_AI.groq;
+        typeAI = DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ;
         res = await askGroq(message, env);
         data = res.data;
 
         if (!res.ok) {
-          allErrorMessages[DEFAULT_OPTIONS.DEFAULT_TYPE_AI.groq] =
-            getErrorMessage(data?.error, DEFAULT_OPTIONS.DEFAULT_TYPE_AI.groq);
+          allErrorMessages[DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ] =
+            getErrorMessage(data?.error, DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ);
         }
       }
 
@@ -162,7 +162,7 @@ function getSuccessMessage(data) {
 }
 
 function getErrorMessage(error, typeAI) {
-  if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.gemini) {
+  if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI) {
     if (error?.code === 429) {
       const tryTime = getTryTime(error?.message);
       return (
@@ -171,7 +171,7 @@ function getErrorMessage(error, typeAI) {
       );
     }
     return error?.message;
-  } else if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.groq) {
+  } else if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ) {
     return error?.message;
   }
 
@@ -235,9 +235,7 @@ function corsHeaders() {
 const DEFAULT_OPTIONS = {
   DEFAULT_MESSAGE: "Không có phản hồi.",
   DEFAULT_TYPE_AI: {
-    gemini: "gemini",
-    groq: "groq",
+    GEMINI: "gemini",
+    GROQ: "groq",
   },
 };
-
-// check build
