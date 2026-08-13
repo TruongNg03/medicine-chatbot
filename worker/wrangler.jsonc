@@ -2,9 +2,6 @@
   "name": "medicare-chatbot",
   "main": "worker.js",
   "compatibility_date": "2026-08-13",
-  "assets": {
-    "directory": ".",
-  },
   "d1_databases": [
     {
       "binding": "MEDICARE_AI_DB",
@@ -13,5 +10,3 @@
     },
   ],
 }
-
-// re-build
