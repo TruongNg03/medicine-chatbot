@@ -320,7 +320,7 @@ async function getMedicines(url, env) {
       orderType,
     });
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify({ body: result }), {
       headers: {
         "Content-Type": "application/json",
         ...corsHeaders(),
@@ -422,13 +422,18 @@ async function createMedicine(request, env) {
 
     const medicine = await findMedicineById(env, id);
 
-    return new Response(JSON.stringify(medicine), {
-      status: 201,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders(),
+    return new Response(
+      JSON.stringify({
+        body: { item: medicine, message: "Medicine created successfully" },
+      }),
+      {
+        status: 201,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders(),
+        },
       },
-    });
+    );
   } catch (error) {
     return new Response(
       JSON.stringify({
@@ -480,7 +485,7 @@ async function getOneMedicine(id, env) {
       );
     }
 
-    return new Response(JSON.stringify(medicine), {
+    return new Response(JSON.stringify({ body: { item: medicine } }), {
       headers: {
         "Content-Type": "application/json",
         ...corsHeaders(),
@@ -595,12 +600,17 @@ async function updateMedicine(id, request, env) {
       );
     }
 
-    return new Response(JSON.stringify(medicine), {
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders(),
+    return new Response(
+      JSON.stringify({
+        body: { item: medicine, message: "Medicine updated successfully" },
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders(),
+        },
       },
-    });
+    );
   } catch (error) {
     return new Response(
       JSON.stringify({
@@ -706,9 +716,11 @@ async function deleteMedicines(request, env) {
 
     return new Response(
       JSON.stringify({
-        message: `Deleted ${count} medicine${
-          count !== 1 ? "s" : ""
-        } successfully`,
+        body: {
+          message: `Deleted ${count} medicine${
+            count !== 1 ? "s" : ""
+          } successfully`,
+        },
       }),
       {
         status: 200,
