@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý thuốc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7fb;
+      }
+
+      .bg-custom-blue {
+        background-color: #0b57d0;
+      }
+
+      .text-custom-blue {
+        color: #0b57d0;
+      }
+
+      .border-custom-blue {
+        border-color: #0b57d0;
+      }
+    </style>
+  </head>
+
+  <body class="p-4 md:p-6 text-gray-800">
+    <div class="max-w-7xl mx-auto space-y-6">
+      <!-- HEADER -->
+      <div
+        class="bg-blue-50/60 p-6 rounded-2xl border border-blue-100 flex flex-col md:flex-row justify-between gap-4"
+      >
+        <div>
+          <h1
+            class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center gap-3"
+          >
+            <i class="fa-solid fa-pills text-custom-blue"></i>
+
+            Quản lý thuốc
+          </h1>
+
+          <p class="text-sm text-gray-600 mt-2">
+            Quản lý thông tin thuốc được lưu trữ trên hệ thống.
+          </p>
+        </div>
+
+        <button
+          onclick="openCreateModal()"
+          class="bg-custom-blue text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+        >
+          <i class="fa-solid fa-plus"></i>
+
+          Thêm thuốc
+        </button>
+      </div>
+
+      <!-- SEARCH -->
+      <div
+        class="flex items-center gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm"
+      >
+        <div class="relative flex-1">
+          <div
+            class="flex items-center border-2 border-blue-200 rounded-full bg-blue-50/30 overflow-hidden focus-within:border-blue-500 transition-all px-4 py-1.5"
+          >
+            <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
+
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="Tìm hoạt chất hoặc biệt dược..."
+              class="w-full bg-transparent outline-none px-3 py-1 text-slate-700 placeholder-gray-400"
+            />
+
+            <button
+              onclick="loadMedicines()"
+              class="bg-custom-blue text-white w-9 h-9 min-w-9 rounded-full flex items-center justify-center hover:bg-blue-700 transition"
+            >
+              <i class="fa-solid fa-magnifying-glass text-sm"></i>
+            </button>
+          </div>
+        </div>
+        <select
+          id="pageSelect"
+          class="px-3 py-2.5 rounded-xl border border-2 border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        ></select>
+        <select
+          id="pageSizeSelect"
+          class="px-3 py-2.5 rounded-xl border border-2 border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        ></select>
+        <select
+          id="orderBySelect"
+          class="px-3 py-2.5 rounded-xl border border-2 border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        ></select>
+        <select
+          id="orderTypeSelect"
+          class="px-3 py-2.5 rounded-xl border border-2 border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        ></select>
+      </div>
+
+      <!-- TABLE -->
+      <div
+        class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+      >
+        <div
+          class="bg-custom-blue text-white px-5 py-3 font-bold flex justify-between items-center"
+        >
+          <span>
+            <i class="fa-solid fa-table-list mr-2"></i>
+            Danh sách thuốc
+          </span>
+
+          <span
+            id="totalCount"
+            class="text-xs bg-white/20 px-3 py-1 rounded-full"
+          >
+            0 thuốc
+          </span>
+        </div>
+
+        <div class="max-h-[calc(100vh-354px)] overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="text-left px-4 py-3 font-bold">#</th>
+
+                <th class="text-left px-4 py-3 font-bold min-w-[180px]">
+                  Biệt dược
+                </th>
+
+                <th class="text-left px-4 py-3 font-bold min-w-[220px]">
+                  Hoạt chất
+                </th>
+
+                <th class="text-left px-4 py-3 font-bold min-w-[180px]">
+                  Dạng bào chế
+                </th>
+
+                <th class="text-left px-4 py-3 font-bold min-w-[180px]">
+                  Nhóm tác dụng
+                </th>
+
+                <th class="text-center px-4 py-3 font-bold w-[150px]">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+
+            <tbody id="medicineTableBody">
+              <tr>
+                <td colspan="6" class="text-center py-12 text-gray-400">
+                  <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+
+                  <p>Đang tải dữ liệu...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================= -->
+    <!-- MODAL CREATE / EDIT -->
+    <!-- ================================= -->
+
+    <div
+      id="medicineModal"
+      class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4"
+    >
+      <div
+        class="bg-white w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden"
+      >
+        <!-- MODAL HEADER -->
+        <div
+          class="bg-custom-blue text-white px-6 py-4 flex justify-between items-center sticky top-0 z-10"
+        >
+          <h2 id="modalTitle" class="text-lg font-bold">Thêm thuốc</h2>
+
+          <button
+            onclick="closeModal()"
+            class="w-8 h-8 rounded-full hover:bg-white/20"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- FORM -->
+        <form
+          id="medicineForm"
+          class="p-6 pr-2.5 pb-0 space-y-5 max-h-[80vh] overflow-y-auto"
+        >
+          <input id="medicineId" type="hidden" />
+
+          <!-- THÔNG TIN CHUNG -->
+          <div>
+            <h3
+              class="font-bold text-custom-blue border-b border-blue-100 pb-2 mb-4"
+            >
+              Thông tin chung
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- BIỆT DƯỢC -->
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Biệt dược
+                </label>
+
+                <input
+                  id="bietDuoc"
+                  type="text"
+                  class="form-input"
+                  placeholder="Tên biệt dược"
+                />
+              </div>
+
+              <!-- HOẠT CHẤT -->
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Hoạt chất
+                </label>
+
+                <input
+                  id="hoatChat"
+                  type="text"
+                  class="form-input"
+                  placeholder="Hoạt chất"
+                />
+              </div>
+
+              <!-- DẠNG BÀO CHẾ -->
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Dạng bào chế
+                </label>
+
+                <input
+                  id="dangBaoChe"
+                  type="text"
+                  class="form-input"
+                  placeholder="Dạng bào chế"
+                />
+              </div>
+
+              <!-- ĐƯỜNG TIÊM -->
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Đường tiêm
+                </label>
+
+                <input
+                  id="duongTiem"
+                  type="text"
+                  class="form-input"
+                  placeholder="Đường tiêm"
+                />
+              </div>
+
+              <!-- NHÓM TÁC DỤNG -->
+              <div class="md:col-span-2">
+                <label class="block text-sm font-semibold mb-1">
+                  Nhóm tác dụng
+                </label>
+
+                <input
+                  id="nhomTacDung"
+                  type="text"
+                  class="form-input"
+                  placeholder="Nhóm tác dụng dược lý"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- CHỈ ĐỊNH -->
+          <div>
+            <h3
+              class="font-bold text-custom-blue border-b border-blue-100 pb-2 mb-4"
+            >
+              Chỉ định và liều dùng
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Chống chỉ định
+                </label>
+
+                <textarea
+                  id="chongChiDinh"
+                  class="form-input min-h-[120px]"
+                  placeholder="Chống chỉ định"
+                ></textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Liều tối đa
+                </label>
+
+                <textarea
+                  id="lieuToiDa"
+                  class="form-input min-h-[120px]"
+                  placeholder="Liều tối đa"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- PHA CHẾ -->
+          <div>
+            <h3
+              class="font-bold text-custom-blue border-b border-blue-100 pb-2 mb-4"
+            >
+              Pha chế và bảo quản
+            </h3>
+
+            <label class="block text-sm font-semibold mb-1">
+              Dung môi hoàn nguyên
+            </label>
+
+            <textarea
+              id="dungMoi"
+              class="form-input min-h-[100px]"
+              placeholder="Dung môi hoàn nguyên"
+            ></textarea>
+          </div>
+
+          <!-- SỬ DỤNG -->
+          <div>
+            <h3
+              class="font-bold text-custom-blue border-b border-blue-100 pb-2 mb-4"
+            >
+              Sử dụng và theo dõi
+            </h3>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Thời gian / tốc độ khuyến cáo
+                </label>
+
+                <textarea
+                  id="thoiGianTiem"
+                  class="form-input min-h-[100px]"
+                ></textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold mb-1"> Lưu ý </label>
+
+                <textarea id="luuY" class="form-input min-h-[120px]"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold mb-1">
+                  Tương kỵ
+                </label>
+
+                <textarea
+                  id="tuongKy"
+                  class="form-input min-h-[100px]"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- HÌNH ẢNH -->
+          <div>
+            <h3
+              class="font-bold text-custom-blue border-b border-blue-100 pb-2 mb-4"
+            >
+              Hình ảnh
+            </h3>
+
+            <input
+              id="hinhAnh"
+              type="text"
+              class="form-input"
+              placeholder="URL hình ảnh"
+            />
+          </div>
+
+          <!-- BUTTON -->
+          <div
+            class="flex justify-end gap-3 border-t pt-5 pb-6 sticky bottom-0 bg-white"
+          >
+            <button
+              type="button"
+              onclick="closeModal()"
+              class="px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50"
+            >
+              Hủy
+            </button>
+
+            <button
+              type="submit"
+              class="px-5 py-2.5 rounded-xl bg-custom-blue text-white font-semibold hover:bg-blue-700"
+            >
+              <i class="fa-solid fa-floppy-disk mr-2"></i>
+
+              Lưu
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+
+    <style>
+      .form-input {
+        width: 100%;
+        border: 1px solid #dbe3ef;
+        border-radius: 0.75rem;
+        padding: 0.65rem 0.85rem;
+        outline: none;
+        transition: all 0.2s;
+        background: white;
+      }
+
+      .form-input:focus {
+        border-color: #0b57d0;
+        box-shadow: 0 0 0 3px rgb(11 87 208 / 10%);
+      }
+
+      textarea.form-input {
+        resize: vertical;
+      }
+    </style>
+  </body>
+</html>
