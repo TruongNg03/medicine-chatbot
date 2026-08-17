@@ -40,8 +40,8 @@ export default {
       return await deleteMedicines(request, env);
     }
 
-    // POST / (call to ai chatbot)
-    if (request.method === "POST" && url.pathname === "/create")
+    // POST /chatbot (call to ai chatbot)
+    if (request.method === "POST" && url.pathname === "/chatbot")
       return await getChatbotResponse(request, env);
 
     return new Response(

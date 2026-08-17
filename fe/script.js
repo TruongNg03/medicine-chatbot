@@ -11,7 +11,7 @@ async function sendMessage() {
 
   try {
     const response = await fetch(
-      "https://medicare-chatbot.evilgodashtal.workers.dev",
+      "https://medicare-chatbot.evilgodashtal.workers.dev/chatbot",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
