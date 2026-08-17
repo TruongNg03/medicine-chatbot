@@ -450,6 +450,37 @@ searchInput.addEventListener("keydown", function (event) {
   }
 });
 
+// IMPORT FILE
+async function handleExcelFile(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch(`${API_URL}/import`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      alert(result.error?.message ?? "Import Excel thất bại.");
+      return;
+    }
+
+    alert(result.message);
+    await loadMedicines();
+  } catch (error) {
+    console.error(error);
+    alert("Không thể import file Excel.");
+  } finally {
+    // Cho phép chọn lại cùng một file
+    input.value = "";
+  }
+}
+
 // INIT
 renderPageSizeSelect();
 renderOrderBySelect();

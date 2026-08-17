@@ -1,3 +1,5 @@
+import * as XLSX from "xlsx";
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -22,6 +24,14 @@ export default {
     // POST /medicines/create
     if (request.method === "POST" && url.pathname === "/medicines/create") {
       return await createMedicine(request, env);
+    }
+
+    // POST /medicines/import-file
+    if (
+      request.method === "POST" &&
+      url.pathname === "/medicines/import-file"
+    ) {
+      return await importMedicinesFile(request, env);
     }
 
     // PUT /medicines/update/:id
@@ -742,6 +752,345 @@ async function deleteMedicines(request, env) {
           ...corsHeaders(),
         },
       },
+    );
+  }
+}
+
+async function importMedicinesFile(request, env) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file");
+
+    // 1. CHECK FILE
+    if (!file || typeof file.arrayBuffer !== "function") {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Không tìm thấy file Excel.",
+        },
+        400,
+      );
+    }
+
+    const fileName = String(file.name ?? "")
+      .toLowerCase()
+      .trim();
+
+    if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Chỉ hỗ trợ file Excel .xlsx hoặc .xls.",
+        },
+        400,
+      );
+    }
+
+    // 2. READ EXCEL
+    let workbook;
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+
+      workbook = XLSX.read(arrayBuffer, {
+        type: "array",
+      });
+    } catch (error) {
+      console.error("Read Excel error:", error);
+
+      return jsonResponse(
+        {
+          success: false,
+          message: "File Excel không hợp lệ hoặc bị hỏng.",
+        },
+        400,
+      );
+    }
+
+    // 3. CHECK SHEET
+    if (!workbook?.SheetNames?.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "File Excel không có sheet.",
+        },
+        400,
+      );
+    }
+
+    // Lấy sheet đầu tiên
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    if (!sheet) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Không thể đọc sheet Excel.",
+        },
+        400,
+      );
+    }
+
+    // 4. RAW ROWS
+    const rows = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      defval: "",
+      raw: false,
+    });
+
+    if (!rows.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "File Excel không có dữ liệu.",
+        },
+        400,
+      );
+    }
+
+    if (rows.length < 3) {
+      return jsonResponse(
+        {
+          success: false,
+          message:
+            "File Excel phải có ít nhất 3 dòng: key, tên field và dữ liệu.",
+        },
+        400,
+      );
+    }
+
+    // 5. GET HEADER
+    const rawKeys = Array.isArray(rows[0]) ? rows[0] : [];
+    const fieldNames = Array.isArray(rows[1]) ? rows[1] : [];
+
+    if (!rawKeys.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Không tìm thấy dòng key trong file Excel.",
+        },
+        400,
+      );
+    }
+
+    if (!fieldNames.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Không tìm thấy dòng tên field trong file Excel.",
+        },
+        400,
+      );
+    }
+
+    // 6. DATA ROWS
+    const dataRows = rows.slice(2);
+
+    // 7. NORMALIZE KEYS
+    const keys = rawKeys.map((key) =>
+      String(key ?? "")
+        .trim()
+        .toLowerCase(),
+    );
+
+    // 8. ALLOWED KEYS
+    const allowedKeys = [
+      "biet_duoc",
+      "hoat_chat",
+      "dang_bao_che",
+      "duong_tiem",
+      "nhom_tac_dung",
+      "chong_chi_dinh",
+      "lieu_toi_da",
+      "dung_moi",
+      "thoi_gian_tiem",
+      "luu_y",
+      "tuong_ky",
+      "hinh_anh",
+    ];
+
+    // 9. CHECK EMPTY KEY
+    const emptyKeyIndex = keys.findIndex((key) => !key);
+
+    if (emptyKeyIndex !== -1) {
+      return jsonResponse(
+        {
+          success: false,
+          message: `Key ở cột ${emptyKeyIndex + 1} không được để trống.`,
+        },
+        400,
+      );
+    }
+
+    // 10. CHECK DUPLICATE KEY
+    const duplicatedKeys = [
+      ...new Set(keys.filter((key, index) => keys.indexOf(key) !== index)),
+    ];
+
+    if (duplicatedKeys.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: `Key bị trùng: ${duplicatedKeys.join(", ")}`,
+        },
+        400,
+      );
+    }
+
+    // 11. CHECK UNKNOWN KEY
+    const invalidKeys = [
+      ...new Set(keys.filter((key) => !allowedKeys.includes(key))),
+    ];
+
+    if (invalidKeys.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: `Key không hợp lệ: ${invalidKeys.join(", ")}`,
+        },
+        400,
+      );
+    }
+
+    // 12. CHECK REQUIRED KEYS
+    const requiredKeys = ["biet_duoc", "hoat_chat"];
+
+    const missingRequiredKeys = requiredKeys.filter(
+      (key) => !keys.includes(key),
+    );
+
+    if (missingRequiredKeys.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: `Thiếu key bắt buộc: ${missingRequiredKeys.join(", ")}`,
+        },
+        400,
+      );
+    }
+
+    // 13. CONVERT ROW -> OBJECT + VALIDATE DATA
+    const medicines = [];
+    const errors = [];
+
+    dataRows.forEach((row, rowIndex) => {
+      const excelRowNumber = rowIndex + 3;
+
+      // Bỏ qua row hoàn toàn rỗng
+      const isEmptyRow = row.every(
+        (value) => String(value ?? "").trim() === "",
+      );
+
+      if (isEmptyRow) {
+        return;
+      }
+
+      const medicine = {};
+
+      keys.forEach((key, columnIndex) => {
+        const value = String(row[columnIndex] ?? "").trim();
+
+        medicine[key] = value;
+      });
+
+      // REQUIRED DATA
+      if (!medicine.biet_duoc) {
+        errors.push({
+          row: excelRowNumber,
+          message: "Thiếu biệt dược.",
+        });
+
+        return;
+      }
+
+      if (!medicine.hoat_chat) {
+        errors.push({
+          row: excelRowNumber,
+          message: "Thiếu hoạt chất.",
+        });
+
+        return;
+      }
+
+      medicines.push(medicine);
+    });
+
+    // 14. NO VALID DATA
+    if (!medicines.length) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Không có dữ liệu hợp lệ để import.",
+          count: 0,
+          errors,
+        },
+        400,
+      );
+    }
+
+    // 15. PREPARE INSERT STATEMENTS
+    const statements = medicines.map((medicine) =>
+      env.MEDICARE_AI_DB.prepare(
+        `
+          INSERT INTO medicines (
+            biet_duoc,
+            hoat_chat,
+            dang_bao_che,
+            duong_tiem,
+            nhom_tac_dung,
+            chong_chi_dinh,
+            lieu_toi_da,
+            dung_moi,
+            thoi_gian_tiem,
+            luu_y,
+            tuong_ky,
+            hinh_anh
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+      ).bind(
+        medicine.biet_duoc,
+        medicine.hoat_chat,
+        medicine.dang_bao_che,
+        medicine.duong_tiem,
+        medicine.nhom_tac_dung,
+        medicine.chong_chi_dinh,
+        medicine.lieu_toi_da,
+        medicine.dung_moi,
+        medicine.thoi_gian_tiem,
+        medicine.luu_y,
+        medicine.tuong_ky,
+        medicine.hinh_anh,
+      ),
+    );
+
+    // 16. BATCH INSERT
+    const BATCH_SIZE = 100;
+
+    for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+      const batch = statements.slice(i, i + BATCH_SIZE);
+
+      await env.MEDICARE_AI_DB.batch(batch);
+    }
+
+    // 17. RESPONSE
+    return jsonResponse({
+      success: true,
+      message: `Import thành công ${medicines.length} thuốc.`,
+      count: medicines.length,
+      errors,
+    });
+  } catch (error) {
+    console.error("Import medicines error:", error);
+
+    return jsonResponse(
+      {
+        success: false,
+        message: "Import Excel thất bại.",
+        error: String(error),
+      },
+      500,
     );
   }
 }

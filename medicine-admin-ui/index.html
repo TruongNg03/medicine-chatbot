@@ -50,14 +50,34 @@
           </p>
         </div>
 
-        <button
-          onclick="openCreateModal()"
-          class="bg-custom-blue text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
-        >
-          <i class="fa-solid fa-plus"></i>
+        <div class="flex items-center gap-3">
+          <button
+            onclick="openCreateModal()"
+            class="h-full bg-custom-blue text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+          >
+            <i class="fa-solid fa-plus"></i>
 
-          Thêm thuốc
-        </button>
+            Thêm thuốc
+          </button>
+
+          <div class="h-full">
+            <input
+              id="excelFileInput"
+              type="file"
+              accept=".xlsx,.xls"
+              class="hidden"
+              onchange="handleExcelFile(this)"
+            />
+            <button
+              type="button"
+              onclick="document.getElementById('excelFileInput').click()"
+              class="flex items-center gap-2 h-full px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+            >
+              <i class="fa-solid fa-file-excel"></i>
+              Import Excel
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- SEARCH -->
