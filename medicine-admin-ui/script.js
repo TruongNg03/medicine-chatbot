@@ -111,6 +111,54 @@ function renderTable(data) {
           </td>
 
           <td class="px-4 py-3">
+            <div class="max-w-[300px] max-h-24 overflow-y-auto whitespace-pre-line">
+              ${escapeHtml(item.chong_chi_dinh)}
+            </div>
+          </td>
+
+          <td class="px-4 py-3">
+            ${escapeHtml(item.lieu_toi_da)}
+          </td>
+
+          <td class="px-4 py-3">
+            ${escapeHtml(item.dung_moi)}
+          </td>
+
+          <td class="px-4 py-3">
+            ${escapeHtml(item.thoi_gian_tiem)}
+          </td>
+
+          <td class="px-4 py-3">
+            <div class="max-w-[300px] max-h-24 overflow-y-auto whitespace-pre-line">
+              ${escapeHtml(item.luu_y)}
+            </div>
+          </td>
+
+          <td class="px-4 py-3">
+            <div class="max-w-[300px] max-h-24 overflow-y-auto whitespace-pre-line">
+              ${escapeHtml(item.tuong_ky)}
+            </div>
+          </td>
+
+          <td class="px-4 py-3">
+            ${
+              item.hinh_anh
+                ? `
+                  <img
+                    src="${escapeHtml(item.hinh_anh)}"
+                    alt="${escapeHtml(item.biet_duoc)}"
+                    class="w-16 h-16 object-cover rounded-lg border"
+                  />
+                `
+                : `
+                  <span class="text-gray-400">
+                    Không có ảnh
+                  </span>
+                `
+            }
+          </td>
+
+          <td class="px-4 py-3">
             <div class="flex justify-center gap-2">
               <button
                 onclick='openEditModal(${JSON.stringify(item)})'
@@ -173,10 +221,6 @@ function renderOrderBySelect() {
       label: "Không sắp xếp",
     },
     {
-      value: "id",
-      label: "ID",
-    },
-    {
       value: "hoat_chat",
       label: "Hoạt chất",
     },
@@ -195,10 +239,6 @@ function renderOrderBySelect() {
     {
       value: "dang_bao_che",
       label: "Dạng bào chế",
-    },
-    {
-      value: "dong_goi",
-      label: "Đóng gói",
     },
     {
       value: "updated_at",
