@@ -139,17 +139,17 @@ async function askGroq(message, env) {
   };
 }
 
-async function askQwen(message, env) {
+async function askOpenRouter(message, env) {
   const response = await fetch(
-    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "https://openrouter.ai/api/v1/chat/completions",
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.QWEN_API_KEY}`,
+        Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: DEFAULT_OPTIONS.MODEL_AI.QWEN,
+        model: DEFAULT_OPTIONS.MODEL_AI.OPENROUTER,
         messages: [
           {
             role: "system",
@@ -176,7 +176,7 @@ async function askQwen(message, env) {
 function getSuccessMessage(data) {
   return (
     data?.candidates?.[0]?.content?.parts?.[0]?.text ?? // gemini
-    data?.choices?.[0]?.message?.content // groq, qwen
+    data?.choices?.[0]?.message?.content // groq, openrouter
   );
 }
 
@@ -232,10 +232,10 @@ async function getChatbotResponse(request, env) {
         type: DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ,
         ask: askGroq,
       },
-      // {
-      //   type: DEFAULT_OPTIONS.DEFAULT_TYPE_AI.QWEN,
-      //   ask: askQwen,
-      // },
+      {
+        type: DEFAULT_OPTIONS.DEFAULT_TYPE_AI.OPENROUTER,
+        ask: askOpenRouter,
+      },
     ];
 
     let typeAI, data, successChatbotName;
@@ -1174,11 +1174,11 @@ const DEFAULT_OPTIONS = {
   DEFAULT_TYPE_AI: {
     GEMINI: "gemini",
     GROQ: "groq",
-    QWEN: "qwen",
+    OPENROUTER: "openrouter",
   },
   MODEL_AI: {
     GEMINI: "gemini-3.6-flash", // gemini-3.6-flash
     GROQ: "openai/gpt-oss-120b", // llama-3.3-70b-versatile (deleted), openai/gpt-oss-20b, openai/gpt-oss-120b
-    QWEN: "qwen-plus",
+    OPENROUTER: "openrouter/free", // openrouter/free
   },
 };
