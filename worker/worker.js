@@ -71,7 +71,7 @@ export default {
 
 async function askGemini(message, env) {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_OPTIONS.MODEL_AI.GEMINI}:generateContent?key=${env.GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: {
@@ -109,7 +109,7 @@ async function askGroq(message, env) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: DEFAULT_OPTIONS.MODEL_AI.GROQ,
         messages: [
           {
             role: "user",
@@ -128,28 +128,56 @@ async function askGroq(message, env) {
   };
 }
 
+async function askQwen(message, env) {
+  const response = await fetch(
+    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.QWEN_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: DEFAULT_OPTIONS.MODEL_AI.QWEN,
+        messages: [
+          {
+            role: "user",
+            content: message,
+          },
+        ],
+      }),
+    },
+  );
+
+  const data = await getResponseJson(response);
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    data,
+  };
+}
+
 function getSuccessMessage(data) {
   return (
-    data?.candidates?.[0]?.content?.parts?.[0]?.text ??
-    data?.choices?.[0]?.message?.content
+    data?.candidates?.[0]?.content?.parts?.[0]?.text ?? // gemini
+    data?.choices?.[0]?.message?.content // groq, qwen
   );
 }
 
 function getErrorMessage(error, typeAI) {
-  if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI) {
-    if (error?.code === 429) {
-      const tryTime = getTryTime(error?.message);
-      return (
-        "Bạn đã vượt quá hạn mức (quota) hiện tại." +
-        (tryTime ? `Vui lòng thử lại sau ${tryTime} giây.` : "")
-      );
-    }
-    return error?.message;
-  } else if (typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ) {
-    return error?.message;
+  if (
+    typeAI === DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI &&
+    error?.code === 429
+  ) {
+    const tryTime = getTryTime(error?.message);
+    return (
+      "Bạn đã vượt quá hạn mức (quota) hiện tại." +
+      (tryTime ? `Vui lòng thử lại sau ${tryTime} giây.` : "")
+    );
   }
 
-  return;
+  return error?.message;
 }
 
 function getTryTime(message) {
@@ -175,31 +203,43 @@ async function getResponseJson(res) {
 
 // get chatbot response
 async function getChatbotResponse(request, env) {
-  let typeAI = DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI;
-
   try {
     const { message } = await request.json();
-    let res,
-      data,
-      allErrorMessages = {};
 
-    res = await askGemini(message, env);
-    data = res.data;
+    const allErrorMessages = {};
 
-    if (!res.ok) {
-      allErrorMessages[DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI] =
-        getErrorMessage(data?.error, DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI);
-    }
+    const aiProviders = [
+      {
+        type: DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GEMINI,
+        ask: askGemini,
+      },
+      {
+        type: DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ,
+        ask: askGroq,
+      },
+      // {
+      //   type: DEFAULT_OPTIONS.DEFAULT_TYPE_AI.QWEN,
+      //   ask: askQwen,
+      // },
+    ];
 
-    if (!res.ok) {
-      typeAI = DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ;
-      res = await askGroq(message, env);
+    let typeAI, data, successChatbotName;
+
+    for (const provider of aiProviders) {
+      const res = await provider.ask(message, env);
+
       data = res.data;
 
-      if (!res.ok) {
-        allErrorMessages[DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ] =
-          getErrorMessage(data?.error, DEFAULT_OPTIONS.DEFAULT_TYPE_AI.GROQ);
+      if (res.ok) {
+        typeAI = provider.type;
+        successChatbotName = provider.type;
+        break;
       }
+
+      allErrorMessages[provider.type] = getErrorMessage(
+        data?.error,
+        provider.type,
+      );
     }
 
     const reply =
@@ -211,6 +251,7 @@ async function getChatbotResponse(request, env) {
       JSON.stringify({
         reply,
         allErrorMessages,
+        successChatbotName: successChatbotName ?? "none",
       }),
       {
         headers: {
@@ -1110,5 +1151,11 @@ const DEFAULT_OPTIONS = {
   DEFAULT_TYPE_AI: {
     GEMINI: "gemini",
     GROQ: "groq",
+    QWEN: "qwen",
+  },
+  MODEL_AI: {
+    GEMINI: "gemini-3.6-flash", // gemini-3.6-flash
+    GROQ: "openai/gpt-oss-120b", // llama-3.3-70b-versatile (deleted), openai/gpt-oss-20b, openai/gpt-oss-120b
+    QWEN: "qwen-plus",
   },
 };

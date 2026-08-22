@@ -1,1 +1,12 @@
 node_modules
+
+# Cache
+.cache/
+cache/
+
+# Local state
+.state/
+state/
+
+# Cloudflare Wrangler local data
+.wrangler/
