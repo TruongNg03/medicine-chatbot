@@ -78,6 +78,13 @@ async function askGemini(message, env) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        systemInstruction: {
+          parts: [
+            {
+              text: SYSTEM_PROMPT,
+            },
+          ],
+        },
         contents: [
           {
             parts: [
@@ -112,6 +119,10 @@ async function askGroq(message, env) {
         model: DEFAULT_OPTIONS.MODEL_AI.GROQ,
         messages: [
           {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          {
             role: "user",
             content: message,
           },
@@ -140,6 +151,10 @@ async function askQwen(message, env) {
       body: JSON.stringify({
         model: DEFAULT_OPTIONS.MODEL_AI.QWEN,
         messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
           {
             role: "user",
             content: message,
@@ -1144,6 +1159,14 @@ function corsHeaders() {
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   };
 }
+
+const SYSTEM_PROMPT = `
+Bạn là trợ lý AI.
+
+Luôn trả lời bằng tiếng Việt.
+Không sử dụng tiếng Anh nếu không cần thiết.
+Nếu thuật ngữ chuyên môn bắt buộc phải dùng tiếng Anh, hãy giữ thuật ngữ đó và giải thích bằng tiếng Việt.
+`;
 
 const DEFAULT_OPTIONS = {
   BASE_URL: "/api",
