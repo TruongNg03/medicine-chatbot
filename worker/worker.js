@@ -593,21 +593,18 @@ async function updateMedicine(id, request, env) {
     const body = await request.json();
 
     const allowedFields = [
-      "hoat_chat",
       "biet_duoc",
-      "nhom_tac_dung",
-      "ham_luong",
+      "hoat_chat",
       "dang_bao_che",
-      "dong_goi",
-      "chi_dinh",
-      "lieu_dung",
-      "cach_dung",
+      "duong_tiem",
+      "nhom_tac_dung",
       "chong_chi_dinh",
-      "tuong_tac_thuoc",
-      "tac_dung_khong_mong_muon",
-      "duoc_dong_hoc_duoc_luc_hoc",
+      "lieu_toi_da",
+      "dung_moi",
+      "thoi_gian_tiem",
       "luu_y",
-      "tai_lieu_tham_khao",
+      "tuong_ky",
+      "hinh_anh",
     ];
 
     const fields = [];
