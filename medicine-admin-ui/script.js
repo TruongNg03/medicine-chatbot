@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8787/medicines";
+const API_URL = "https://medicare-chatbot.evilgodashtal.workers.dev/medicines";
 const searchInput = document.getElementById("searchInput");
 const tableBody = document.getElementById("medicineTableBody");
 const totalCount = document.getElementById("totalCount");
