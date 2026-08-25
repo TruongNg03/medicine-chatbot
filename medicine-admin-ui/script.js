@@ -1,4 +1,4 @@
-const API_URL = "https://medicare-chatbot.evilgodashtal.workers.dev/medicines";
+const API_URL = "http://127.0.0.1:8787/medicines";
 const searchInput = document.getElementById("searchInput");
 const tableBody = document.getElementById("medicineTableBody");
 const totalCount = document.getElementById("totalCount");
@@ -459,21 +459,27 @@ async function handleExcelFile(input) {
   formData.append("file", file);
 
   try {
-    const response = await fetch(`${API_URL}/import`, {
+    const response = await fetch(`${API_URL}/import-file`, {
       method: "POST",
       body: formData,
     });
 
     const result = await response.json();
     if (!response.ok || !result.success) {
-      alert(result.error?.message ?? "Import Excel thất bại.");
+      alert(result.message ?? "Import Excel thất bại.");
       return;
     }
 
-    alert(result.message);
+    alert(
+      result.errors?.length
+        ? `${result.message}\nCó ${result.errors.length} dòng lỗi.`
+        : result.message,
+    );
+
     await loadMedicines();
   } catch (error) {
-    console.error(error);
+    console.error("Import Excel error:", error);
+
     alert("Không thể import file Excel.");
   } finally {
     // Cho phép chọn lại cùng một file

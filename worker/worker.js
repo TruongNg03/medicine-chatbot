@@ -56,7 +56,7 @@ export default {
 
     return new Response(
       JSON.stringify({
-        error: "Not found",
+        error: "Page not found",
       }),
       {
         status: 404,
@@ -214,6 +214,16 @@ async function getResponseJson(res) {
       },
     };
   }
+}
+
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders(),
+    },
+  });
 }
 
 // get chatbot response
@@ -811,6 +821,14 @@ async function deleteMedicines(request, env) {
 
 async function importMedicinesFile(request, env) {
   try {
+    console.log("IMPORT METHOD:", request.method);
+
+    console.log("IMPORT CONTENT-TYPE:", request.headers.get("Content-Type"));
+
+    console.log(
+      "IMPORT CONTENT-LENGTH:",
+      request.headers.get("Content-Length"),
+    );
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -871,7 +889,6 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // Lấy sheet đầu tiên
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
 
@@ -885,7 +902,7 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // 4. RAW ROWS
+    // 4. READ ROWS
     const rows = XLSX.utils.sheet_to_json(sheet, {
       header: 1,
       defval: "",
@@ -913,9 +930,8 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // 5. GET HEADER
+    // 5. GET KEYS
     const rawKeys = Array.isArray(rows[0]) ? rows[0] : [];
-    const fieldNames = Array.isArray(rows[1]) ? rows[1] : [];
 
     if (!rawKeys.length) {
       return jsonResponse(
@@ -927,27 +943,13 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    if (!fieldNames.length) {
-      return jsonResponse(
-        {
-          success: false,
-          message: "Không tìm thấy dòng tên field trong file Excel.",
-        },
-        400,
-      );
-    }
-
-    // 6. DATA ROWS
-    const dataRows = rows.slice(2);
-
-    // 7. NORMALIZE KEYS
     const keys = rawKeys.map((key) =>
       String(key ?? "")
         .trim()
         .toLowerCase(),
     );
 
-    // 8. ALLOWED KEYS
+    // 6. ALLOWED KEYS
     const allowedKeys = [
       "biet_duoc",
       "hoat_chat",
@@ -963,7 +965,7 @@ async function importMedicinesFile(request, env) {
       "hinh_anh",
     ];
 
-    // 9. CHECK EMPTY KEY
+    // 7. EMPTY KEY
     const emptyKeyIndex = keys.findIndex((key) => !key);
 
     if (emptyKeyIndex !== -1) {
@@ -976,7 +978,7 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // 10. CHECK DUPLICATE KEY
+    // 8. DUPLICATE KEY
     const duplicatedKeys = [
       ...new Set(keys.filter((key, index) => keys.indexOf(key) !== index)),
     ];
@@ -991,7 +993,7 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // 11. CHECK UNKNOWN KEY
+    // 9. INVALID KEY
     const invalidKeys = [
       ...new Set(keys.filter((key) => !allowedKeys.includes(key))),
     ];
@@ -1006,7 +1008,7 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // 12. CHECK REQUIRED KEYS
+    // 10. REQUIRED KEY
     const requiredKeys = ["biet_duoc", "hoat_chat"];
 
     const missingRequiredKeys = requiredKeys.filter(
@@ -1023,14 +1025,16 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // 13. CONVERT ROW -> OBJECT + VALIDATE DATA
+    // 11. DATA
+    const dataRows = rows.slice(2);
+
     const medicines = [];
     const errors = [];
 
     dataRows.forEach((row, rowIndex) => {
       const excelRowNumber = rowIndex + 3;
 
-      // Bỏ qua row hoàn toàn rỗng
+      // Bỏ qua dòng rỗng
       const isEmptyRow = row.every(
         (value) => String(value ?? "").trim() === "",
       );
@@ -1041,35 +1045,43 @@ async function importMedicinesFile(request, env) {
 
       const medicine = {};
 
-      keys.forEach((key, columnIndex) => {
-        const value = String(row[columnIndex] ?? "").trim();
+      // Khởi tạo tất cả field
+      for (const key of allowedKeys) {
+        medicine[key] = "";
+      }
 
-        medicine[key] = value;
+      // Gán dữ liệu từ Excel
+      keys.forEach((key, columnIndex) => {
+        medicine[key] = String(row[columnIndex] ?? "").trim();
       });
 
       // REQUIRED DATA
-      if (!medicine.biet_duoc) {
-        errors.push({
-          row: excelRowNumber,
-          message: "Thiếu biệt dược.",
-        });
+      const rowErrors = [];
 
-        return;
+      if (!medicine.biet_duoc) {
+        rowErrors.push("Thiếu biệt dược.");
       }
 
       if (!medicine.hoat_chat) {
+        rowErrors.push("Thiếu hoạt chất.");
+      }
+
+      if (rowErrors.length) {
         errors.push({
           row: excelRowNumber,
-          message: "Thiếu hoạt chất.",
+          message: rowErrors.join(" "),
         });
 
         return;
       }
 
-      medicines.push(medicine);
+      medicines.push({
+        row: excelRowNumber,
+        data: medicine,
+      });
     });
 
-    // 14. NO VALID DATA
+    // 12. NO VALID DATA
     if (!medicines.length) {
       return jsonResponse(
         {
@@ -1082,8 +1094,8 @@ async function importMedicinesFile(request, env) {
       );
     }
 
-    // 15. PREPARE INSERT STATEMENTS
-    const statements = medicines.map((medicine) =>
+    // 13. PREPARE STATEMENTS
+    const statements = medicines.map(({ data }) =>
       env.MEDICARE_AI_DB.prepare(
         `
           INSERT INTO medicines (
@@ -1103,35 +1115,51 @@ async function importMedicinesFile(request, env) {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
       ).bind(
-        medicine.biet_duoc,
-        medicine.hoat_chat,
-        medicine.dang_bao_che,
-        medicine.duong_tiem,
-        medicine.nhom_tac_dung,
-        medicine.chong_chi_dinh,
-        medicine.lieu_toi_da,
-        medicine.dung_moi,
-        medicine.thoi_gian_tiem,
-        medicine.luu_y,
-        medicine.tuong_ky,
-        medicine.hinh_anh,
+        data.biet_duoc,
+        data.hoat_chat,
+        data.dang_bao_che,
+        data.duong_tiem,
+        data.nhom_tac_dung,
+        data.chong_chi_dinh,
+        data.lieu_toi_da,
+        data.dung_moi,
+        data.thoi_gian_tiem,
+        data.luu_y,
+        data.tuong_ky,
+        data.hinh_anh,
       ),
     );
 
-    // 16. BATCH INSERT
+    // 14. BATCH INSERT
     const BATCH_SIZE = 100;
 
-    for (let i = 0; i < statements.length; i += BATCH_SIZE) {
-      const batch = statements.slice(i, i + BATCH_SIZE);
+    try {
+      for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+        const batch = statements.slice(i, i + BATCH_SIZE);
 
-      await env.MEDICARE_AI_DB.batch(batch);
+        await env.MEDICARE_AI_DB.batch(batch);
+      }
+    } catch (error) {
+      console.error("D1 import error:", error);
+
+      return jsonResponse(
+        {
+          success: false,
+          message: "Không thể lưu dữ liệu vào database.",
+          error: String(error),
+          count: 0,
+          errors,
+        },
+        500,
+      );
     }
 
-    // 17. RESPONSE
+    // 15. RESPONSE
     return jsonResponse({
       success: true,
       message: `Import thành công ${medicines.length} thuốc.`,
       count: medicines.length,
+      errorCount: errors.length,
       errors,
     });
   } catch (error) {

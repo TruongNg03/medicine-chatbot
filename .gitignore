@@ -10,3 +10,4 @@ state/
 
 # Cloudflare Wrangler local data
 .wrangler/
+sample_data/
